@@ -1,0 +1,62 @@
+{
+  "name": "vidia-api",
+  "version": "1.0.0",
+  "description": "Official zero-dependency Node.js client for the VIDIA AI video API — quote, produce, track and download AI videos. 비디아 AI 영상 제작 API 공식 Node.js SDK.",
+  "type": "module",
+  "main": "./src/index.cjs",
+  "module": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "require": "./src/index.cjs"
+    }
+  },
+  "files": [
+    "src",
+    "docs",
+    "examples",
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test && npm run test:types",
+    "test:types": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm test"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lead788/vidia-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lead788/vidia-api/issues"
+  },
+  "homepage": "https://vidia.kr/help/guide/developer",
+  "license": "MIT",
+  "author": "VIDIA",
+  "publishConfig": {
+    "access": "public",
+    "provenance": false
+  },
+  "keywords": [
+    "vidia",
+    "api",
+    "sdk",
+    "ai-video",
+    "video-generation",
+    "text-to-video",
+    "shorts",
+    "youtube-shorts",
+    "korean"
+  ]
+}
