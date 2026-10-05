@@ -190,6 +190,17 @@ export interface RunFiles {
 	note?: string;
 }
 
+export interface Asset {
+	id: number;
+	kind: 'image' | 'video' | 'audio' | string;
+	name: string | null;
+	bytes: number | null;
+	width: number | null;
+	height: number | null;
+	durationSec: number | null;
+	createdAt: string | null;
+}
+
 export interface WaitOptions {
 	/** Poll interval, default 30000, minimum 5000. */
 	intervalMs?: number;
@@ -211,6 +222,9 @@ export declare class VidiaClient {
 	listRuns(query?: { state?: RunState; limit?: number; offset?: number }): Promise<Page<Run>>;
 	cancelRun(id: number | string, options?: { confirmed?: boolean }): Promise<Run>;
 	listFiles(id: number | string): Promise<RunFiles>;
+	listAssets(query?: { kind?: 'image' | 'video' | 'audio'; q?: string; limit?: number }): Promise<{ items: Asset[] }>;
+	/** Upload a file to your library (run key). Use the returned id in asset input fields. */
+	uploadAsset(filePath: string, options?: { label?: string }): Promise<Asset>;
 	waitForRun(id: number | string, options?: WaitOptions): Promise<Run>;
 	download(file: RunFile | string, destPath: string): Promise<{ path: string; bytes: number }>;
 	downloadVideo(id: number | string, destPath: string): Promise<{ path: string; bytes: number }>;

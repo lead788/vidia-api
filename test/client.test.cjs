@@ -151,6 +151,26 @@ test('download: 다른 주소의 링크는 거절, 키를 붙이지 않고 파�
 	}
 });
 
+test('uploadAsset: multipart file·label 을 Bearer 로 보내고 asset 을 돌려준다, 목록은 kind 로 거른다', async () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vidia-up-'));
+	const file = path.join(dir, '사진.png');
+	fs.writeFileSync(file, Buffer.from([1, 2, 3]));
+	const seen = [];
+	const c = new VidiaClient({ apiKey: KEY, fetch: async (url, init) => { seen.push({ url, init }); return url.endsWith('/api/v1/assets') && init.method === 'POST' ? jsonResponse({ asset: { id: 41, kind: 'image', name: '사진' } }, 201) : jsonResponse({ items: [] }); } });
+	try {
+		const a = await c.uploadAsset(file, { label: '사진' });
+		assert.equal(a.id, 41);
+		assert.equal(seen[0].init.headers.Authorization, 'Bearer ' + KEY);
+		assert.ok(seen[0].init.body instanceof FormData);
+		assert.equal(seen[0].init.body.get('label'), '사진');
+		assert.equal(seen[0].init.body.get('file').name, '사진.png');
+		await c.listAssets({ kind: 'image', limit: 5 });
+		assert.equal(seen[1].url, 'https://vidia.kr/api/v1/assets?kind=image&limit=5');
+		const bad = new VidiaClient({ apiKey: KEY, fetch: async () => jsonResponse({ error: { code: 'SCOPE_FORBIDDEN', message: 'x' } }, 403) });
+		await assert.rejects(bad.uploadAsset(file), (e) => e.code === 'SCOPE_FORBIDDEN' && e.status === 403);
+	} finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('downloadVideo: 완성 영상이 없으면 VIDEO_NOT_READY', async () => {
 	const c = new VidiaClient({ apiKey: KEY, fetch: async () => jsonResponse({ runId: 1, state: 'RUNNING', items: [] }) });
 	await assert.rejects(c.downloadVideo(1, 'x.mp4'), (e) => e.code === 'VIDEO_NOT_READY');
@@ -176,5 +196,5 @@ test('공개 메타데이터', () => {
 	assert.deepEqual(Object.keys(pkg.dependencies || {}), []);
 	const readme = fs.readFileSync(path.join(__dirname, '../README.md'), 'utf8');
 	assert.doesNotMatch(readme, /vd_live_[A-Za-z0-9]{32}/);
-	for (const m of ['quote', 'startRun', 'waitForRun', 'downloadVideo']) assert.match(readme, new RegExp(m));
+	for (const m of ['quote', 'startRun', 'waitForRun', 'downloadVideo', 'uploadAsset', 'listAssets']) assert.match(readme, new RegExp(m));
 });

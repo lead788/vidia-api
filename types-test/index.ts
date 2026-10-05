@@ -16,6 +16,10 @@ async function flow(): Promise<void> {
 	const video: RunFile | undefined = files.items.find((f) => f.role === 'final_video');
 	if (video) await client.download(video, './out.mp4');
 	await client.downloadVideo(run.id, './out.mp4');
+	const up = await client.uploadAsset('./photo.png', { label: '사진' });
+	const lib = await client.listAssets({ kind: 'image' });
+	const assetId: number = up.id + lib.items.length;
+	void assetId;
 	void available; void keys; void RUN_STATES;
 }
 

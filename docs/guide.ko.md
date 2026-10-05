@@ -59,6 +59,10 @@ curl -H "Authorization: Bearer $VIDIA_API_KEY" https://vidia.kr/api/v1/runs/<id>
 
 취소: `POST /api/v1/runs/<id>/cancel` (`run` 키, 되돌릴 수 없음)
 
+## 자료실 파일(asset 칸)
+
+입력 칸 `type` 이 `asset` 이면 자료실 파일 id 를 넣습니다. 목록: `GET /api/v1/assets?kind=image`. 올리기(`run` 키): `curl -H "Authorization: Bearer $VIDIA_API_KEY" -F "file=@photo.jpg" -F "label=가게 사진" https://vidia.kr/api/v1/assets` → `201 { asset: { id, kind, name, bytes } }`. 이미지(PNG·JPG·WebP)·영상(MP4·MOV·WebM)·소리(MP3·WAV·M4A), 500MB 이하.
+
 ## 6. 결과물 받기
 
 ```bash

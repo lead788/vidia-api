@@ -197,6 +197,45 @@ class VidiaClient {
 	/** 제작 취소(되돌릴 수 없음). confirmed: 오류로 멈춘 제작을 전액 돌려받고 취소할 때 true */
 	cancelRun(id, options) { return this.#request('POST', '/api/v1/runs/' + runId(id) + '/cancel', { confirmed: Boolean(options && options.confirmed) }); }
 
+	/** 내 자료실 파일(asset 입력 칸에 넣을 id). kind: image | video | audio */
+	listAssets(query) {
+		const q = query || {};
+		return this.#request('GET', '/api/v1/assets' + queryString({ kind: q.kind, q: q.q, limit: q.limit }));
+	}
+
+	/**
+	 * 파일을 자료실에 올린다("제작 시작 허용" 키). 이미지(PNG·JPG·WebP)·영상(MP4·MOV·WebM)·소리(MP3·WAV·M4A), 500MB 이하.
+	 * @returns {Promise<{id: number, kind: string, name: string|null, bytes: number|null}>} 돌려받은 id 를 asset 입력 칸에 넣는다.
+	 */
+	async uploadAsset(filePath, options) {
+		const file = requiredString('filePath', filePath);
+		const o = options || {};
+		const data = await fs.promises.readFile(file);
+		const form = new FormData();
+		form.append('file', new Blob([data]), path.basename(file));
+		if (o.label !== undefined) form.append('label', String(o.label).slice(0, 200));
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), this.#timeoutMs || 600_000);
+		let res;
+		try {
+			res = await this.#fetch(this.#baseUrl + '/api/v1/assets', { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${this.#apiKey}`, 'User-Agent': 'vidia-api-node' }, body: form, signal: controller.signal, redirect: 'error' });
+		} catch (error) {
+			const timedOut = controller.signal.aborted || (error && error.name === 'AbortError');
+			throw new VidiaApiError(timedOut ? 'VIDIA upload timed out.' : 'Cannot reach VIDIA: ' + redact(error && error.message, this.#apiKey), { code: timedOut ? 'TIMEOUT' : 'NETWORK_ERROR' });
+		} finally {
+			clearTimeout(timer);
+		}
+		const text = await res.text();
+		let body = null;
+		try { body = text ? JSON.parse(text) : null; } catch { body = null; }
+		if (!res.ok) {
+			const err = body && body.error ? body.error : {};
+			throw new VidiaApiError(redact(err.message || `HTTP ${res.status}`, this.#apiKey), { status: res.status, code: err.code || 'HTTP_' + res.status, details: body && body.detail !== undefined ? body.detail : undefined });
+		}
+		if (!body || !body.asset) throw new VidiaApiError('VIDIA returned an unexpected response.', { status: res.status, code: 'BAD_RESPONSE' });
+		return body.asset;
+	}
+
 	/** 결과물 목록과 1시간짜리 서명 다운로드 링크 */
 	listFiles(id) { return this.#request('GET', '/api/v1/runs/' + runId(id) + '/files'); }
 

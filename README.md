@@ -32,8 +32,8 @@ npm i vidia-api
 
 | 권한 Scope | 할 수 있는 일 |
 |---|---|
-| `read` 조회·견적만 | `me`, `listPackages`, `getPackage`, `quote`, `getRun`, `listRuns`, `listFiles`, `download` — 포인트를 쓰지 않음 / spends no points |
-| `run` 제작 시작 허용 | 위 + `startRun`, `cancelRun` — 키마다 하루 제작 상한 / per-key daily limit |
+| `read` 조회·견적만 | `me`, `listPackages`, `getPackage`, `quote`, `getRun`, `listRuns`, `listAssets`, `listFiles`, `download` — 포인트를 쓰지 않음 / spends no points |
+| `run` 제작 시작 허용 | 위 + `startRun`, `cancelRun`, `uploadAsset` — 키마다 하루 제작 상한 / per-key daily limit |
 
 ```bash
 export VIDIA_API_KEY=YOUR_VIDIA_API_KEY
@@ -86,12 +86,23 @@ const vidia = new VidiaClient(process.env.VIDIA_API_KEY);
 | `getRun(id)` | `GET /api/v1/runs/:id` | 상태·진행·예상 남은 시간 / state, progress, ETA |
 | `listRuns(query?)` | `GET /api/v1/runs` | 내 제작 목록 / my productions |
 | `cancelRun(id, { confirmed? })` | `POST /api/v1/runs/:id/cancel` | 취소(되돌릴 수 없음) / cancel |
+| `listAssets(query?)` | `GET /api/v1/assets` | 내 자료실 파일(asset 입력 칸에 넣을 id) / your library files |
+| `uploadAsset(path, { label? })` | `POST /api/v1/assets` | 파일 올리기(`run` 키, 이미지·영상·소리 500MB 이하) / upload (run key) |
 | `listFiles(id)` | `GET /api/v1/runs/:id/files` | 결과물과 1시간짜리 다운로드 링크 / files with 1-hour links |
 | `waitForRun(id, opts?)` | — | 완성·실패·취소·확인 대기까지 30초 간격으로 확인 / polls every 30s |
 | `download(file, path)` | `GET /api/v1/download/:token` | 결과물 하나를 파일로 / save one file |
 | `downloadVideo(id, path)` | — | 완성 영상 mp4 저장 / save the final mp4 |
 
 설정 칸 / Settings: `title`, `mode` (`AUTO`|`MANUAL`), `problemPolicy` (`SKIP`|`ASK`), `loopPolicy` (`ACCEPT`|`ASK`), `loopRetries` (0–5), `scheduledAt`.
+
+## 사진·영상 입력 / File inputs
+
+입력 칸의 `type` 이 `asset` 이면 자료실 파일 id 를 넣습니다(여러 장이면 배열). / Fields of type `asset` take library file ids.
+
+```js
+const photo = await vidia.uploadAsset('./shop.jpg', { label: '가게 사진' });
+const input = { topic: '…', user_images: [photo.id] };
+```
 
 ## 제작 시작 규칙 / Starting a production
 

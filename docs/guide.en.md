@@ -50,6 +50,10 @@ curl -X POST -H "Authorization: Bearer $VIDIA_API_KEY" -H "Content-Type: applica
 
 List: `GET /api/v1/runs?state=RUNNING` · Cancel: `POST /api/v1/runs/<id>/cancel` (run key, irreversible)
 
+## Library files (asset fields)
+
+Fields of type `asset` take library file ids. List: `GET /api/v1/assets?kind=image`. Upload (run key): `curl -H "Authorization: Bearer $VIDIA_API_KEY" -F "file=@photo.jpg" https://vidia.kr/api/v1/assets` → `201 { asset: { id, kind, name, bytes } }`. Images (PNG, JPG, WebP), video (MP4, MOV, WebM), audio (MP3, WAV, M4A), up to 500MB.
+
 ## 6. Download
 
 `GET /api/v1/runs/<id>/files` → `items[].url` are signed links valid for one hour without a key (Range supported). `role: "final_video"` is the finished mp4. `publish` holds suggested titles and a description.
