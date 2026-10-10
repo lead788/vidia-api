@@ -83,12 +83,22 @@ const vidia = new VidiaClient(process.env.VIDIA_API_KEY);
 | `getPackage(slug)` | `GET /api/v1/packages/:slug` | 설명·입력 칸(`inputs`) / details and input fields |
 | `quote(params)` | `POST /api/v1/quotes` | 견적(무료, 10분 유효) / quote, valid 10 minutes |
 | `startRun(params)` | `POST /api/v1/runs` | 제작 시작(`confirm: true` 필수) / start a production |
-| `getRun(id)` | `GET /api/v1/runs/:id` | 상태·진행·예상 남은 시간 / state, progress, ETA |
+| `getRun(id, { wait? })` | `GET /api/v1/runs/:id` | 상태·진행·예상 남은 시간, 멈췄으면 `pending`·`actions`. `wait`(초, 최대 50)로 기다렸다 받기 / state, progress, ETA; long-poll with `wait` |
+| `runAction(id, action, params?)` | `POST /api/v1/runs/:id/actions` | 멈춘 제작 풀기(예산 추가·다시 시도·선택·마치기) / resolve a stopped run |
+| `batchQuotes(items)` · `batchStart(items, { confirm })` | `POST /api/v1/batch/quotes` · `/batch/runs` | 여러 편 한 번에(최대 10, 건별 결과) / up to 10 at once, per-item results |
+| `getRunInput(id)` | `GET /api/v1/runs/:id/input` | 넣었던 입력값(다시 만들 때) / the input you used |
+| `trashRun(id)` · `restoreRun(id)` | `POST /api/v1/runs/:id/trash` · `/restore` | 휴지통·복원 / trash and restore |
+| `setThumbnail(id, opts)` · `setShowcase(id, opts)` | `POST /api/v1/runs/:id/thumbnail` · `/showcase` | 썸네일 바꾸기, 쇼케이스 공개 / thumbnail, showcase |
 | `listRuns(query?)` | `GET /api/v1/runs` | 내 제작 목록 / my productions |
 | `cancelRun(id, { confirmed? })` | `POST /api/v1/runs/:id/cancel` | 취소(되돌릴 수 없음) / cancel |
 | `listAssets(query?)` | `GET /api/v1/assets` | 내 자료실 파일(asset 입력 칸에 넣을 id) / your library files |
 | `uploadAsset(path, { label? })` | `POST /api/v1/assets` | 파일 올리기(`run` 키, 이미지·영상·소리 500MB 이하) / upload (run key) |
-| `listFiles(id)` | `GET /api/v1/runs/:id/files` | 결과물과 1시간짜리 다운로드 링크 / files with 1-hour links |
+| `renameAsset(id, name)` · `deleteAsset(id, { confirm })` · `createUploadLink()` | `POST /api/v1/assets/:id/rename` · `/delete` · `/assets/upload-link` | 자료실 관리, 15분짜리 업로드 주소 / library housekeeping, 15-minute upload URL |
+| `listFiles(id)` | `GET /api/v1/runs/:id/files` | 결과물과 1시간짜리 다운로드 링크, 유튜브 업로드 키트(`upload`) / files with 1-hour links and an upload kit |
+| `usage()` · `pointHistory(query?)` | `GET /api/v1/usage` · `/points/history` | 사용량, 포인트 내역 / usage, point history |
+| `topicIdea(slug, { skipId? })` · `packageResults(slug)` | `GET /api/v1/packages/:slug/topic-idea` · `/results` | 추천 주제, 공개 결과물 / topic ideas, public results |
+| `createWebhook(params)` · `listWebhooks()` · `testWebhook(id)` · `deleteWebhook(id)` · `enableWebhook(id)` · `listWebhookDeliveries(id)` | `/api/v1/webhooks…` | 웹훅 / webhooks |
+| `verifyWebhookSignature(secret, header, body)` | — | 받은 웹훅의 서명 확인 / verify a received webhook |
 | `waitForRun(id, opts?)` | — | 완성·실패·취소·확인 대기까지 30초 간격으로 확인 / polls every 30s |
 | `download(file, path)` | `GET /api/v1/download/:token` | 결과물 하나를 파일로 / save one file |
 | `downloadVideo(id, path)` | — | 완성 영상 mp4 저장 / save the final mp4 |
@@ -104,13 +114,42 @@ const photo = await vidia.uploadAsset('./shop.jpg', { label: '가게 사진' });
 const input = { topic: '…', user_images: [photo.id] };
 ```
 
+## 시험용 키 / Test keys
+
+`vd_test_` 로 시작하는 키는 포인트를 쓰지 않습니다. 같은 코드를 그대로 돌리면 실제 영상 대신 약 40초 뒤 견본 결과가 옵니다(응답에 `test: true`). `testScenario` 로 멈춘 상황을 재현합니다. / Test keys cost nothing: the same code gets a sample result after ~40 s.
+
+```js
+const run = await vidia.startRun({ package: slug, input, quote, confirm: true, testScenario: 'budget' }); // 'complete' | 'fail' | 'budget' | 'review'
+```
+
+## 멈춘 제작 풀기 / Resolving a stopped run
+
+`getRun()` 의 `pending`(멈춘 사정)과 `actions`(지금 보낼 수 있는 동작)를 보고 `runAction()` 을 보냅니다. 포인트를 더 잡는 `add_budget`·`approve_price` 는 사용자 동의 뒤 `confirm: true` 가 필요합니다. / Read `pending` and `actions`, then send one with `runAction()`.
+
+```js
+let run = await vidia.getRun(id, { wait: 50 });           // 끝나거나 멈출 때까지 최대 50초 기다림
+if (run.pending?.kind === 'BUDGET') run = await vidia.runAction(id, 'add_budget', { add: 2000, confirm: true });
+if (run.actions?.includes('retry')) run = await vidia.runAction(id, 'retry');
+```
+
+## 웹훅 / Webhooks
+
+```js
+const { webhook, secret } = await vidia.createWebhook({ url: 'https://example.com/vidia-hook', events: ['run.completed', 'run.action_required'] });
+// 받는 쪽 / in your handler (raw body!):
+import { verifyWebhookSignature } from 'vidia-api';
+if (!verifyWebhookSignature(secret, req.headers['vidia-signature'], rawBody)) return res.status(400).end();
+```
+
+2xx 로 답하면 받은 것으로 봅니다. 아니면 1분·5분·30분·2시간·6시간 뒤 다시 보냅니다. / Answer 2xx; otherwise deliveries are retried.
+
 ## 제작 시작 규칙 / Starting a production
 
 - `confirm: true` 가 있어야 합니다 — 사용자가 견적 금액에 동의했다는 뜻입니다.
 - `quote` 객체(또는 `quoteId` + `budget`)를 넘깁니다. 예산을 생략하면 견적의 권장 예산을 씁니다. 예산만큼 포인트를 먼저 잡아 두고 쓰지 않은 만큼 돌려줍니다.
 - 견적 때와 같은 `package`·`input`·설정을 보내야 합니다(다르면 `QUOTE_CHANGED`). 견적은 10분 동안 유효합니다(`QUOTE_EXPIRED`).
 - `idempotencyKey` 를 생략하면 새로 만들어 결과(`run.idempotencyKey`)에 돌려줍니다. 응답을 못 받아 다시 보낼 때는 그 키를 그대로 넘기면 중복 제작이 생기지 않습니다.
-- `PAUSED`·`AWAITING_APPROVAL` 은 사람이 골라야 하는 상태입니다. `run.actionNeeded` 의 웹 주소에서 이어 가세요.
+- `PAUSED`·`AWAITING_APPROVAL`·`FAILED` 는 고를 것이 있는 상태입니다. `run.pending`·`run.actions` 를 보고 `runAction()` 으로 풀거나 웹에서 이어 가세요.
 
 - Pass `confirm: true` once the user has agreed to the quoted amount.
 - Pass the `quote` object (or `quoteId` + `budget`). Points for the budget are held up front; unused points are returned.
@@ -127,7 +166,7 @@ try { await vidia.startRun({ /* … */ confirm: true }); }
 catch (e) { if (e instanceof VidiaApiError) console.log(e.status, e.code, e.message, e.details); }
 ```
 
-주요 코드 / Common codes: `AUTH_REQUIRED`, `AUTH_INVALID`, `SCOPE_FORBIDDEN`, `INPUT_INVALID`, `INPUT_INCOMPLETE`, `PACKAGE_NOT_FOUND`, `QUOTE_EXPIRED`, `QUOTE_CHANGED`, `BUDGET_BELOW_MINIMUM`, `CONFIRM_REQUIRED`, `KEY_DAILY_RUN_LIMIT`, `QUEUE_FULL`, `RATE_LIMITED`, `RUN_NOT_FOUND`, `TIMEOUT`, `NETWORK_ERROR`.
+주요 코드 / Common codes: `AUTH_REQUIRED`, `AUTH_INVALID`, `SCOPE_FORBIDDEN`, `INPUT_INVALID`, `INPUT_INCOMPLETE`, `PACKAGE_NOT_FOUND`, `QUOTE_EXPIRED`, `QUOTE_CHANGED`, `BUDGET_BELOW_MINIMUM`, `CONFIRM_REQUIRED`, `KEY_DAILY_RUN_LIMIT`, `KEY_BUDGET_LIMIT`, `KEY_DAILY_BUDGET_LIMIT`, `KEY_IP_NOT_ALLOWED`, `ACTION_NOT_AVAILABLE`, `TEST_KEY_NOT_ALLOWED`, `QUEUE_FULL`, `RATE_LIMITED`, `RUN_NOT_FOUND`, `TIMEOUT`, `NETWORK_ERROR`.
 
 ## 더 보기 / More
 

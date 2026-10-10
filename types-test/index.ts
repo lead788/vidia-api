@@ -1,4 +1,4 @@
-import VidiaClient, { VidiaApiError, RUN_STATES, type Quote, type Run, type RunFile } from '../src/index.js';
+import VidiaClient, { VidiaApiError, RUN_STATES, verifyWebhookSignature, type Quote, type Run, type RunFile } from '../src/index.js';
 
 const client = new VidiaClient({ apiKey: 'vd_live_' + 'a'.repeat(32), baseUrl: 'https://vidia.kr' });
 
@@ -20,6 +20,20 @@ async function flow(): Promise<void> {
 	const lib = await client.listAssets({ kind: 'image' });
 	const assetId: number = up.id + lib.items.length;
 	void assetId;
+	const waited = await client.getRun(run.id, { wait: 30 });
+	const kind: string | undefined = waited.pending?.kind;
+	if (waited.actions?.includes('add_budget')) await client.runAction(run.id, 'add_budget', { add: 1000, confirm: true });
+	const batch = await client.batchStart([{ package: slug, input: {}, quote }], { confirm: true });
+	const first = batch.items[0];
+	if (first.ok) { const startedId: number = first.run.id; void startedId; } else { const code: string = first.error.code; void code; }
+	const hook = await client.createWebhook({ url: 'https://example.com/hook', events: ['run.completed'] });
+	const okSig: boolean = verifyWebhookSignature(hook.secret, 't=1,v1=' + 'a'.repeat(64), '{}');
+	const usage = await client.usage();
+	const left: number | null = usage.key ? usage.key.runsLeft : null;
+	const title: string | undefined = files.upload?.titles[0];
+	await client.setShowcase(run.id, { on: true, confirm: true });
+	await client.setThumbnail(run.id, { reset: true });
+	void kind; void okSig; void left; void title;
 	void available; void keys; void RUN_STATES;
 }
 

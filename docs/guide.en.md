@@ -58,6 +58,16 @@ Fields of type `asset` take library file ids. List: `GET /api/v1/assets?kind=ima
 
 `GET /api/v1/runs/<id>/files` → `items[].url` are signed links valid for one hour without a key (Range supported). `role: "final_video"` is the finished mp4. `publish` holds suggested titles and a description.
 
+## Stopped runs, test keys, webhooks and more
+
+- A stopped run (PAUSED, AWAITING_APPROVAL, FAILED) carries `pending` (why it stopped) and `actions` (what you can send now). Resolve it with `POST /api/v1/runs/<id>/actions`, e.g. `{"action":"add_budget","add":2000,"idempotency_key":"…","confirm":true}`, `{"action":"retry"}`, `{"action":"finish"}`. `add_budget` and `approve_price` need `confirm: true`.
+- Add `?wait=50` (seconds, max 50) to `GET /api/v1/runs/<id>` to wait until the run finishes or stops.
+- Keys starting with `vd_test_` cost nothing: the same requests return a sample result after about 40 seconds (`test: true`). Add `"test_scenario": "fail" | "budget" | "review"` when starting to rehearse a stop.
+- Webhooks: `POST /api/v1/webhooks {"url":"https://…","events":[…]}`; the `secret` is returned once. Each delivery carries `Vidia-Signature: t=<seconds>,v1=<hex HMAC-SHA256(secret, t + "." + body)>`. Answer 2xx; otherwise it is retried after 1 min, 5 min, 30 min, 2 h and 6 h.
+- Batches (up to 10, per-item results): `POST /api/v1/batch/quotes`, `POST /api/v1/batch/runs` with a single top-level `confirm: true`.
+- `GET /api/v1/runs/<id>/input` returns the input you used; `GET /api/v1/runs/<id>/files` now includes an `upload` kit (title candidates, description, tags, chapters, pinned comment, verdict).
+- Full list of paths and shapes: `GET /api/v1/openapi.json` (OpenAPI 3.1).
+
 ## Limits
 
 Each key has request limits (429 with `Retry-After`). Run keys also have a daily production limit (`KEY_DAILY_RUN_LIMIT`).

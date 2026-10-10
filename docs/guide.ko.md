@@ -53,7 +53,9 @@ curl -X POST -H "Authorization: Bearer $VIDIA_API_KEY" -H "Content-Type: applica
 curl -H "Authorization: Bearer $VIDIA_API_KEY" https://vidia.kr/api/v1/runs/<id>
 ```
 
-`state`: QUEUED · RUNNING · PAUSED(확인 대기) · AWAITING_APPROVAL(예산 승인 대기) · COMPLETED · FAILED · CANCELLED. 제작 중이면 `progress: { step, total }` 와 `eta: { seconds, finishAt }` 가 옵니다. 30초 이상 간격으로 확인하세요. PAUSED·AWAITING_APPROVAL 은 `actionNeeded` 의 웹 주소에서 이어 갑니다.
+`state`: QUEUED · RUNNING · PAUSED(확인 대기) · AWAITING_APPROVAL(예산 승인 대기) · COMPLETED · FAILED · CANCELLED. 제작 중이면 `progress: { step, total }` 와 `eta: { seconds, finishAt }` 가 옵니다. 30초 이상 간격으로 확인하거나 `?wait=50`(초, 최대 50)을 붙여 끝나거나 멈출 때까지 기다렸다 받으세요.
+
+멈추면(PAUSED·AWAITING_APPROVAL·FAILED) `pending`(멈춘 사정: `kind`·`message`·`budget`·`candidates`)과 `actions`(지금 보낼 수 있는 동작)가 옵니다. `POST /api/v1/runs/<id>/actions`(`run` 키)로 풉니다 — 예: `{"action":"add_budget","add":2000,"idempotency_key":"…","confirm":true}`, `{"action":"retry"}`, `{"action":"choose","step_id":12}`, `{"action":"finish"}`. 포인트를 더 잡는 `add_budget`·`approve_price` 는 `confirm: true` 가 필요합니다.
 
 목록: `GET /api/v1/runs?state=RUNNING&limit=20`
 
@@ -69,11 +71,27 @@ curl -H "Authorization: Bearer $VIDIA_API_KEY" https://vidia.kr/api/v1/runs/<id>
 curl -H "Authorization: Bearer $VIDIA_API_KEY" https://vidia.kr/api/v1/runs/<id>/files
 ```
 
-`items[].url` 은 키 없이 1시간 동안 받을 수 있는 링크입니다(Range 지원). `role: "final_video"` 가 완성 영상입니다. `publish` 에 게시용 제목 후보·설명이 있습니다.
+`items[].url` 은 키 없이 1시간 동안 받을 수 있는 링크입니다(Range 지원). `role: "final_video"` 가 완성 영상입니다. `upload` 에 유튜브 업로드 키트(제목 후보·설명란·태그·해시태그·챕터·고정 댓글·업로드 판정)가 있습니다.
 
 ```bash
 curl -L -o video.mp4 "<items[0].url>"
 ```
+
+## 시험용 키
+
+`vd_test_` 로 시작하는 키는 포인트를 쓰지 않습니다. 같은 요청을 그대로 보내면 실제 영상 대신 약 40초 뒤 견본 결과가 옵니다(응답에 `test: true`). 제작 시작에 `"test_scenario": "fail" | "budget" | "review"` 를 넣으면 멈춘 상황과 그 뒤 처리까지 시험할 수 있습니다.
+
+## 웹훅
+
+`POST /api/v1/webhooks {"url":"https://…","events":["run.completed","run.failed","run.cancelled","run.action_required"]}`(`run` 키) → 응답의 `secret` 은 한 번만 옵니다. 비디아가 그 주소로 `{ id, event, createdAt, data: { run } }` 를 POST 합니다. 헤더 `Vidia-Signature: t=<초>,v1=<서명>` 의 서명은 `HMAC-SHA256(secret, t + "." + 본문)` 의 16진수입니다. 2xx 로 답하면 받은 것으로 보고, 아니면 1분·5분·30분·2시간·6시간 뒤 다시 보냅니다. 목록 `GET /api/v1/webhooks`, 시험 전송 `POST /api/v1/webhooks/<id>/test`, 삭제 `POST /api/v1/webhooks/<id>/delete`.
+
+## 여러 편·다시 만들기·마무리
+
+- 여러 편 한 번에(최대 10, 결과는 건별): `POST /api/v1/batch/quotes {"items":[…]}`, `POST /api/v1/batch/runs {"items":[…],"confirm":true}`.
+- 다시 만들기: `GET /api/v1/runs/<id>/input` 으로 넣었던 입력값을 받아 견적에 그대로 넣습니다.
+- 썸네일: `POST /api/v1/runs/<id>/thumbnail {"asset_id":123}` 또는 `{"reset":true}`. 쇼케이스: `POST /api/v1/runs/<id>/showcase {"on":true,"confirm":true}`.
+- 휴지통: `POST /api/v1/runs/<id>/trash`·`/restore`. 추천 주제: `GET /api/v1/packages/<slug>/topic-idea`. 공개 결과물: `GET /api/v1/packages/<slug>/results`. 사용량: `GET /api/v1/usage`. 포인트 내역: `GET /api/v1/points/history`.
+- 전체 경로와 입력 모양: `GET /api/v1/openapi.json`(OpenAPI 3.1).
 
 ## 한도
 
@@ -83,4 +101,4 @@ curl -L -o video.mp4 "<items[0].url>"
 
 ## 오류 형식
 
-`{ "error": { "code": "QUOTE_EXPIRED", "message": "…" }, "detail": { "errors": [{ "key", "message" }], "missing": ["칸 key"] } }` — 4xx 메시지는 사용자에게 그대로 보여 줘도 되는 한국어 문장입니다. 5xx 는 `requestId` 만 줍니다. 실패한 제작은 `error.code: "RUN_FAILED"` 로만 알려 주고, 자세한 처리는 웹 프로젝트 화면에서 합니다.
+`{ "error": { "code": "QUOTE_EXPIRED", "message": "…" }, "detail": { "errors": [{ "key", "message" }], "missing": ["칸 key"] } }` — 4xx 메시지는 사용자에게 그대로 보여 줘도 되는 한국어 문장입니다. 5xx 는 `requestId` 만 줍니다. 실패한 제작은 `error.code: "RUN_FAILED"` 로 알려 주고, `pending`·`actions` 로 다음에 할 수 있는 일을 알려 줍니다.

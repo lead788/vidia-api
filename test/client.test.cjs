@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
 const test = require('node:test');
-const { VidiaClient, VidiaApiError, RUN_STATES, redact } = require('../src/index.cjs');
+const { VidiaClient, VidiaApiError, RUN_STATES, RUN_ACTIONS, verifyWebhookSignature, redact } = require('../src/index.cjs');
 
 const KEY = 'vd_live_' + 'Q'.repeat(32);
 
@@ -198,3 +198,94 @@ test('공개 메타데이터', () => {
 	assert.doesNotMatch(readme, /vd_live_[A-Za-z0-9]{32}/);
 	for (const m of ['quote', 'startRun', 'waitForRun', 'downloadVideo', 'uploadAsset', 'listAssets']) assert.match(readme, new RegExp(m));
 });
+
+// ---- 1.2.0 ----
+test('시험용 키도 받고, 가릴 때 시험용 키·웹훅 비밀값·업로드 토큰도 가린다', () => {
+	assert.equal(new VidiaClient({ apiKey: 'vd_test_' + 'T'.repeat(32), fetch: async () => {} }).baseUrl, 'https://vidia.kr');
+	const out = redact('key vd_test_ABCDEFGH1234 secret whsec_ZZZZ1234 url https://vidia.kr/api/v1/assets?upload_token=aaa.bbb-ccc');
+	assert.doesNotMatch(out, /ABCDEFGH|ZZZZ1234|aaa\.bbb/);
+});
+
+test('getRun wait: 1~50 초만, 쿼리로 보낸다', async () => {
+	const r = recorder([{ id: 7, state: 'COMPLETED' }]);
+	const c = new VidiaClient({ apiKey: KEY, fetch: r.fetch });
+	await c.getRun(7, { wait: 45 });
+	assert.equal(r.calls[0].url, 'https://vidia.kr/api/v1/runs/7?wait=45');
+	assert.throws(() => c.getRun(7, { wait: 51 }), /wait/);
+	assert.throws(() => c.getRun(7, { wait: 0 }), /wait/);
+});
+
+test('runAction: 동작 이름 확인, 포인트를 더 잡는 동작은 confirm 필수, snake_case 로 보낸다', async () => {
+	const r = recorder([{ id: 7, state: 'RUNNING' }]);
+	const c = new VidiaClient({ apiKey: KEY, fetch: r.fetch });
+	assert.ok(RUN_ACTIONS.includes('add_budget'));
+	assert.throws(() => c.runAction(7, 'explode'), /action must be one of/);
+	assert.throws(() => c.runAction(7, 'add_budget', { add: 1000 }), /confirm: true/);
+	assert.throws(() => c.runAction(7, 'approve_price', {}), /confirm: true/);
+	await c.runAction(7, 'add_budget', { add: 1000, confirm: true, idempotencyKey: 'budget-key-1' });
+	assert.equal(r.calls[0].url, 'https://vidia.kr/api/v1/runs/7/actions');
+	assert.deepEqual(r.calls[0].body, { action: 'add_budget', add: 1000, idempotency_key: 'budget-key-1', confirm: true });
+	await c.runAction(7, 'choose', { stepId: 12 });
+	assert.deepEqual(r.calls[1].body, { action: 'choose', step_id: 12 });
+	await c.runAction(7, 'retry');
+	assert.deepEqual(r.calls[2].body, { action: 'retry' });
+});
+
+test('startRun: 시가 허용·자동 처리·시험 시나리오를 보낸다', async () => {
+	const r = recorder([{ id: 9000000001, state: 'QUEUED', test: true }]);
+	const c = new VidiaClient({ apiKey: KEY, fetch: r.fetch });
+	const run = await c.startRun({ package: 'p', input: {}, quoteId: 'q1', budget: 3000, confirm: true, priceTolerance: 20, autoResolve: false, testScenario: 'budget' });
+	assert.equal(r.calls[0].body.price_tolerance, 20);
+	assert.equal(r.calls[0].body.auto_resolve, false);
+	assert.equal(r.calls[0].body.test_scenario, 'budget');
+	assert.match(run.idempotencyKey, /^sdk-/);
+	assert.throws(() => c.startRun({ package: 'p', input: {}, quoteId: 'q1', budget: 3000, confirm: true, testScenario: 'boom' }), /testScenario/);
+});
+
+test('batchStart: confirm 은 한 번, 건마다 식별자를 만들고 결과에 돌려준다', async () => {
+	const r = recorder([{ total: 2, started: 1, failed: 1, items: [{ index: 0, ok: true, run: { id: 11, state: 'QUEUED' } }, { index: 1, ok: false, status: 422, error: { code: 'BUDGET_BELOW_MINIMUM', message: 'x' } }] }]);
+	const c = new VidiaClient({ apiKey: KEY, fetch: r.fetch });
+	const items = [{ package: 'p', input: {}, quoteId: 'q1', budget: 3000 }, { package: 'p', input: {}, quoteId: 'q2', budget: 1 }];
+	assert.throws(() => c.batchStart(items), /confirm: true/);
+	assert.throws(() => c.batchStart([], { confirm: true }), /1-10/);
+	const out = await c.batchStart(items, { confirm: true });
+	assert.equal(r.calls[0].url, 'https://vidia.kr/api/v1/batch/runs');
+	assert.equal(r.calls[0].body.confirm, true);
+	assert.equal(r.calls[0].body.items.length, 2);
+	assert.equal(r.calls[0].body.items[0].confirm, undefined);
+	assert.notEqual(r.calls[0].body.items[0].idempotency_key, r.calls[0].body.items[1].idempotency_key);
+	assert.equal(out.items[0].run.idempotencyKey, r.calls[0].body.items[0].idempotency_key);
+	assert.equal(out.items[1].error.code, 'BUDGET_BELOW_MINIMUM');
+});
+
+test('웹훅·마무리·자료실: 경로와 본문, 되돌릴 수 없는 일은 confirm 필수', async () => {
+	const r = recorder([{}]);
+	const c = new VidiaClient({ apiKey: KEY, fetch: r.fetch });
+	await c.createWebhook({ url: 'https://example.com/h', events: ['run.completed'] });
+	assert.deepEqual([r.calls[0].url, r.calls[0].body], ['https://vidia.kr/api/v1/webhooks', { url: 'https://example.com/h', events: ['run.completed'] }]);
+	assert.throws(() => c.createWebhook({ url: 'https://example.com/h', events: ['run.deleted'] }), /events/);
+	assert.throws(() => c.setShowcase(7, { on: true }), /confirm: true/);
+	await c.setShowcase(7, { on: false });
+	assert.deepEqual(r.calls[1].body, { on: false });
+	await c.setThumbnail(7, { assetId: 5 });
+	assert.deepEqual([r.calls[2].url, r.calls[2].body], ['https://vidia.kr/api/v1/runs/7/thumbnail', { asset_id: 5 }]);
+	assert.throws(() => c.deleteAsset(5), /confirm: true/);
+	await c.topicIdea('pkg', { skipId: 3 });
+	assert.deepEqual([r.calls[3].url, r.calls[3].body], ['https://vidia.kr/api/v1/packages/pkg/topic-idea/skip', { idea_id: 3 }]);
+	await c.listRuns({ package: 'pkg', trashed: true, createdFrom: '2026-10-01T00:00:00Z' });
+	assert.equal(r.calls[4].url, 'https://vidia.kr/api/v1/runs?package=pkg&created_from=2026-10-01T00%3A00%3A00Z&trashed=true');
+});
+
+test('웹훅 서명 확인: 같은 비밀값·본문·시각만 통과', () => {
+	const crypto = require('node:crypto');
+	const now = Date.UTC(2026, 9, 10), t = Math.floor(now / 1000), body = '{"id":"evt_1"}';
+	const header = 't=' + t + ',v1=' + crypto.createHmac('sha256', 'whsec_a').update(t + '.' + body).digest('hex');
+	assert.equal(verifyWebhookSignature('whsec_a', header, body, { now }), true);
+	assert.equal(verifyWebhookSignature('whsec_a', header, Buffer.from(body), { now }), true);
+	assert.equal(verifyWebhookSignature('whsec_b', header, body, { now }), false);
+	assert.equal(verifyWebhookSignature('whsec_a', header, body + ' ', { now }), false);
+	assert.equal(verifyWebhookSignature('whsec_a', header, body, { now: now + 301000 }), false);
+	assert.equal(verifyWebhookSignature('whsec_a', '', body, { now }), false);
+	assert.equal(verifyWebhookSignature('', header, body, { now }), false);
+});
+

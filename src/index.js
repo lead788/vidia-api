@@ -7,6 +7,10 @@ export const {
 	RUN_STATES,
 	FINISHED_STATES,
 	ACTION_STATES,
+	RUN_ACTIONS,
+	TEST_SCENARIOS,
+	WEBHOOK_EVENTS,
+	verifyWebhookSignature,
 	redact
 } = sdk;
 
