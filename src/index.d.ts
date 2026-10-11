@@ -265,6 +265,7 @@ export interface RunFile {
 	durationSec?: number | null;
 	width?: number | null;
 	height?: number | null;
+	/** Signed link, valid until expiresAt. Fetch it with the same member's key in the Authorization header (or use download()). */
 	url: string;
 	expiresAt: string;
 }
@@ -341,6 +342,7 @@ export declare class VidiaClient {
 	/** Upload a file to your library (run key). Use the returned id in asset input fields. */
 	uploadAsset(filePath: string, options?: { label?: string }): Promise<Asset>;
 	waitForRun(id: number | string, options?: WaitOptions): Promise<Run>;
+	/** Save one file from listFiles(). The link is only valid for the member it was issued to, so the key is sent in the Authorization header (same baseUrl only, redirects are not followed). */
 	download(file: RunFile | string, destPath: string): Promise<{ path: string; bytes: number }>;
 	downloadVideo(id: number | string, destPath: string): Promise<{ path: string; bytes: number }>;
 	toJSON(): { baseUrl: string };

@@ -121,7 +121,8 @@ test('waitForRun: 진행 중이면 기다리고, 완성·확인 대기에서 돌
 	await assert.rejects(c.waitForRun(5, { intervalMs: 1000 }), /intervalMs/);
 });
 
-test('download: 다른 주소의 링크는 거절, 키를 붙이지 않고 파일로 저장한다(로컬 서버)', async () => {
+// 1.2.1: 서명 링크는 링크를 받은 회원의 키를 함께 보내야 열린다(서버가 키 없는 요청을 401 로 거절한다). 예전에는 키를 붙이지 않았다.
+test('download: 다른 주소의 링크는 거절, 같은 곳의 링크에는 키를 헤더로 붙여 파일로 저장한다(로컬 서버)', async () => {
 	const body = Buffer.alloc(70_000, 7);
 	let seenAuth = 'unset';
 	const server = http.createServer((req, res) => {
@@ -130,7 +131,13 @@ test('download: 다른 주소의 링크는 거절, 키를 붙이지 않고 파�
 			const port = server.address().port;
 			return res.end(JSON.stringify({ runId: 9, state: 'COMPLETED', items: [{ id: 'final', role: 'final_video', url: `http://localhost:${port}/api/v1/download/tok.sig` }] }));
 		}
-		if (req.url.startsWith('/api/v1/download/')) { seenAuth = req.headers.authorization; res.setHeader('content-type', 'video/mp4'); return res.end(body); }
+		if (req.url.startsWith('/api/v1/download/moved')) { res.statusCode = 302; res.setHeader('location', 'http://127.0.0.1:9/elsewhere'); return res.end(); }
+		if (req.url.startsWith('/api/v1/download/')) {
+			seenAuth = req.headers.authorization;
+			// 실제 서버처럼: 키가 없으면 401.
+			if (seenAuth !== 'Bearer ' + KEY) { res.statusCode = 401; res.setHeader('content-type', 'application/json'); return res.end(JSON.stringify({ error: { code: 'AUTH_REQUIRED', message: 'key required ' + KEY } })); }
+			res.setHeader('content-type', 'video/mp4'); return res.end(body);
+		}
 		res.statusCode = 404; res.end('{}');
 	});
 	await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -143,8 +150,14 @@ test('download: 다른 주소의 링크는 거절, 키를 붙이지 않고 파�
 		const out = await c.downloadVideo(9, path.join(dir, 'sub', 'v.mp4'));
 		assert.equal(out.bytes, body.length);
 		assert.equal(fs.readFileSync(out.path).length, body.length);
-		assert.equal(seenAuth, undefined);
+		assert.equal(seenAuth, 'Bearer ' + KEY, '링크 요청에 키를 헤더로 붙인다');
 		assert.ok(!fs.existsSync(out.path + '.part'));
+		// 다른 주소로 넘기는 응답은 따르지 않는다(키가 다른 곳으로 가지 않는다).
+		await assert.rejects(c.download(`http://localhost:${port}/api/v1/download/moved`, path.join(dir, 'm.mp4')), (e) => e.code === 'NETWORK_ERROR');
+		assert.ok(!fs.existsSync(path.join(dir, 'm.mp4')));
+		// 다른 회원의 키로는 서버가 거절한다 — 오류 문구에 키가 섞여 와도 가려서 던진다.
+		const stranger = new VidiaClient({ apiKey: 'vd_live_' + 'Z'.repeat(32), baseUrl: `http://localhost:${port}` });
+		await assert.rejects(stranger.download(`http://localhost:${port}/api/v1/download/tok.sig`, path.join(dir, 's.mp4')), (e) => e.status === 401 && e.code === 'AUTH_REQUIRED' && !/vd_live_[A-Za-z0-9]{8}/.test(e.message));
 	} finally {
 		server.close();
 		fs.rmSync(dir, { recursive: true, force: true });

@@ -2,7 +2,8 @@
 
 // vidia-api — VIDIA(vidia.kr) 공개 REST API 공식 Node.js 클라이언트. 의존성 0개, Node 18+.
 // 견적받기 → 제작 시작 → 진행 확인 → 결과물 다운로드. 키는 Authorization: Bearer 헤더로만 보내고
-// 오류·출력에서 가린다. 서명 다운로드 링크에는 키를 붙이지 않는다.
+// 오류·출력에서 가린다. 서명 다운로드 링크는 링크를 받은 회원만 쓸 수 있어(2026-10-11) 받을 때도 같은 헤더로 키를 보낸다
+// — 이 클라이언트의 baseUrl 과 같은 곳의 /api/v1/download/ 주소에만, 다른 곳으로 넘기는 응답(리디렉션)은 따르지 않는다.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -410,7 +411,9 @@ class VidiaClient {
 
 	/**
 	 * 결과물 하나를 파일로 받는다. file: listFiles 의 항목 또는 그 url.
-	 * 링크가 이 클라이언트의 baseUrl 이 아니면 받지 않는다(키는 링크 요청에 붙이지 않는다).
+	 * 링크는 주소만으로는 열리지 않는다 — 링크를 받은 회원의 키를 함께 보내야 한다(서버가 401 로 거절한다). 그래서 이 요청에도
+	 * Authorization 헤더를 붙인다. 키가 다른 곳으로 가지 않게: 링크가 이 클라이언트의 baseUrl 과 같은 곳의 /api/v1/download/ 주소가
+	 * 아니면 받지 않고, 다른 주소로 넘기는 응답(리디렉션)은 따르지 않는다.
 	 * @returns {Promise<{path: string, bytes: number}>}
 	 */
 	async download(file, destPath) {
@@ -420,13 +423,13 @@ class VidiaClient {
 			throw new TypeError('download only accepts VIDIA download links from listFiles().');
 		}
 		const dest = requiredString('destPath', destPath);
-		const res = await this.#fetch(url, { method: 'GET', redirect: 'error', headers: { 'User-Agent': 'vidia-api-node' } }).catch((error) => {
+		const res = await this.#fetch(url, { method: 'GET', redirect: 'error', headers: { Authorization: `Bearer ${this.#apiKey}`, 'User-Agent': 'vidia-api-node' } }).catch((error) => {
 			throw new VidiaApiError('Cannot reach VIDIA: ' + redact(error && error.message, this.#apiKey), { code: 'NETWORK_ERROR' });
 		});
 		if (!res.ok || !res.body) {
 			let err = {};
 			try { err = (JSON.parse(await res.text()) || {}).error || {}; } catch { err = {}; }
-			throw new VidiaApiError(err.message || `HTTP ${res.status}`, { status: res.status, code: err.code || 'HTTP_' + res.status });
+			throw new VidiaApiError(redact(err.message || `HTTP ${res.status}`, this.#apiKey), { status: res.status, code: err.code || 'HTTP_' + res.status });
 		}
 		await fs.promises.mkdir(path.dirname(path.resolve(dest)), { recursive: true });
 		const tmp = dest + '.part';

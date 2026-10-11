@@ -94,13 +94,13 @@ const vidia = new VidiaClient(process.env.VIDIA_API_KEY);
 | `listAssets(query?)` | `GET /api/v1/assets` | 내 자료실 파일(asset 입력 칸에 넣을 id) / your library files |
 | `uploadAsset(path, { label? })` | `POST /api/v1/assets` | 파일 올리기(`run` 키, 이미지·영상·소리 500MB 이하) / upload (run key) |
 | `renameAsset(id, name)` · `deleteAsset(id, { confirm })` · `createUploadLink()` | `POST /api/v1/assets/:id/rename` · `/delete` · `/assets/upload-link` | 자료실 관리, 15분짜리 업로드 주소 / library housekeeping, 15-minute upload URL |
-| `listFiles(id)` | `GET /api/v1/runs/:id/files` | 결과물과 1시간짜리 다운로드 링크, 유튜브 업로드 키트(`upload`) / files with 1-hour links and an upload kit |
+| `listFiles(id)` | `GET /api/v1/runs/:id/files` | 결과물과 1시간짜리 다운로드 링크(받을 때 키 필요), 유튜브 업로드 키트(`upload`) / files with 1-hour links (key required to fetch) and an upload kit |
 | `usage()` · `pointHistory(query?)` | `GET /api/v1/usage` · `/points/history` | 사용량, 포인트 내역 / usage, point history |
 | `topicIdea(slug, { skipId? })` · `packageResults(slug)` | `GET /api/v1/packages/:slug/topic-idea` · `/results` | 추천 주제, 공개 결과물 / topic ideas, public results |
 | `createWebhook(params)` · `listWebhooks()` · `testWebhook(id)` · `deleteWebhook(id)` · `enableWebhook(id)` · `listWebhookDeliveries(id)` | `/api/v1/webhooks…` | 웹훅 / webhooks |
 | `verifyWebhookSignature(secret, header, body)` | — | 받은 웹훅의 서명 확인 / verify a received webhook |
 | `waitForRun(id, opts?)` | — | 완성·실패·취소·확인 대기까지 30초 간격으로 확인 / polls every 30s |
-| `download(file, path)` | `GET /api/v1/download/:token` | 결과물 하나를 파일로 / save one file |
+| `download(file, path)` | `GET /api/v1/download/:token` | 결과물 하나를 파일로(키를 헤더로 함께 보냄) / save one file (sends the key header) |
 | `downloadVideo(id, path)` | — | 완성 영상 mp4 저장 / save the final mp4 |
 
 설정 칸 / Settings: `title`, `mode` (`AUTO`|`MANUAL`), `problemPolicy` (`SKIP`|`ASK`), `loopPolicy` (`ACCEPT`|`ASK`), `loopRetries` (0–5), `scheduledAt`.
