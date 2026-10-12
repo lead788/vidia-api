@@ -1,7 +1,7 @@
 # 1.2.1
 
-- 다운로드 링크는 이제 링크를 받은 회원만 쓸 수 있습니다(서버 변경). `download()`·`downloadVideo()` 가 링크 요청에도 `Authorization` 헤더로 키를 보냅니다 — 같은 `baseUrl` 의 `/api/v1/download/…` 주소에만 보내고, 다른 주소로 넘기는 응답은 따르지 않습니다. 1.2.0 이하의 `download()` 는 `401 AUTH_REQUIRED` 로 거절되니 올려 주세요. 링크를 직접 받는다면 같은 헤더를 붙이세요.
-- Download links are now valid only for the member they were issued to (server change). `download()` and `downloadVideo()` send the key in the `Authorization` header — only to `/api/v1/download/…` on the same `baseUrl`, never following redirects. `download()` in 1.2.0 and earlier is refused with `401 AUTH_REQUIRED`; please upgrade. If you fetch links yourself, add the same header.
+- 다운로드 링크는 이제 링크를 받은 회원만 쓸 수 있습니다(서버 변경). `download()`·`downloadVideo()` 가 링크 요청에도 `Authorization` 헤더로 키를 보냅니다 — 같은 `baseUrl` 의 `/api/v1/download/…` 주소에만 보내고, 다른 주소로 넘기는 응답은 따르지 않습니다. 지금은 서버의 유예 기간이라 1.2.0 이하의 `download()`(키 없이 받음)도 받히지만 응답에 `Vidia-Deprecation` 경고가 붙고, 유예 기간이 끝나면 `401 AUTH_REQUIRED` 로 거절됩니다. 올려 주세요. 링크를 직접 받는다면 같은 헤더를 붙이세요.
+- Download links are now valid only for the member they were issued to (server change). `download()` and `downloadVideo()` send the key in the `Authorization` header — only to `/api/v1/download/…` on the same `baseUrl`, never following redirects. During the server's grace period `download()` in 1.2.0 and earlier (no key) still works but gets a `Vidia-Deprecation` warning header; after the grace period it is refused with `401 AUTH_REQUIRED`. Please upgrade. If you fetch links yourself, add the same header.
 
 # 1.2.0
 

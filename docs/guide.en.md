@@ -56,7 +56,7 @@ Fields of type `asset` take library file ids. List: `GET /api/v1/assets?kind=ima
 
 ## 6. Download
 
-`GET /api/v1/runs/<id>/files` → `items[].url` are signed links valid for one hour (Range supported). A link does not open on its own: send the same member's key with it — `curl -H "Authorization: Bearer $VIDIA_API_KEY" -o video.mp4 "<url>"` — or open it in a browser signed in to VIDIA as that member. Without a key the answer is `401 AUTH_REQUIRED`; with another member's key, `404 LINK_INVALID`. `role: "final_video"` is the finished mp4. `publish` holds suggested titles and a description.
+`GET /api/v1/runs/<id>/files` → `items[].url` are signed links valid for one hour (Range supported). A link does not open on its own: send the same member's key with it — `curl -H "Authorization: Bearer $VIDIA_API_KEY" -o video.mp4 "<url>"` — or open it in a browser signed in to VIDIA as that member. During the grace period a link without a key still works but the response carries a `Vidia-Deprecation` warning header; after it, a request without a key gets `401 AUTH_REQUIRED`. With another member's key the answer is `404 LINK_INVALID`. `role: "final_video"` is the finished mp4. `publish` holds suggested titles and a description.
 
 ## Stopped runs, test keys, webhooks and more
 

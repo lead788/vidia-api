@@ -71,10 +71,10 @@ curl -H "Authorization: Bearer $VIDIA_API_KEY" https://vidia.kr/api/v1/runs/<id>
 curl -H "Authorization: Bearer $VIDIA_API_KEY" https://vidia.kr/api/v1/runs/<id>/files
 ```
 
-`items[].url` 은 1시간 동안 쓸 수 있는 링크입니다(Range 지원). 링크는 주소만으로는 열리지 않습니다 — 받을 때도 같은 회원의 키를 헤더로 함께 보내세요: `curl -H "Authorization: Bearer $VIDIA_API_KEY" -o video.mp4 "<url>"`. 브라우저에서는 같은 회원으로 비디아에 로그인한 상태에서 열립니다. 키가 없으면 `401 AUTH_REQUIRED`, 다른 회원의 키면 `404 LINK_INVALID` 입니다. `role: "final_video"` 가 완성 영상입니다. `upload` 에 유튜브 업로드 키트(제목 후보·설명란·태그·해시태그·챕터·고정 댓글·업로드 판정)가 있습니다.
+`items[].url` 은 1시간 동안 쓸 수 있는 링크입니다(Range 지원). 링크는 주소만으로는 열리지 않습니다 — 받을 때도 같은 회원의 키를 헤더로 함께 보내세요: `curl -H "Authorization: Bearer $VIDIA_API_KEY" -o video.mp4 "<url>"`. 브라우저에서는 같은 회원으로 비디아에 로그인한 상태에서 열립니다. 지금은 유예 기간이라 키 없이도 받히지만 응답에 `Vidia-Deprecation` 경고 헤더가 붙고, 유예 기간이 끝나면 키 없는 요청은 `401 AUTH_REQUIRED` 입니다. 다른 회원의 키면 `404 LINK_INVALID` 입니다. `role: "final_video"` 가 완성 영상입니다. `upload` 에 유튜브 업로드 키트(제목 후보·설명란·태그·해시태그·챕터·고정 댓글·업로드 판정)가 있습니다.
 
 ```bash
-curl -L -o video.mp4 "<items[0].url>"
+curl -H "Authorization: Bearer $VIDIA_API_KEY" -o video.mp4 "<items[0].url>"
 ```
 
 ## 시험용 키
