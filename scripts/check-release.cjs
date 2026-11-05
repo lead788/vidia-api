@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),cp=require('node:child_process');
+const pkg=require('../package.json'),lock=require('../package-lock.json');
+assert.equal(pkg.version,lock.version);assert.equal(pkg.version,lock.packages[''].version);
+assert.equal(pkg.name,'vidia-api');assert.equal(Object.keys(pkg.dependencies||{}).length,0);
+const cmd=process.platform==='win32'?'npm.cmd':'npm';
+const out=cp.execFileSync(cmd,['pack','--dry-run','--json'],{encoding:'utf8',shell:process.platform==='win32'});
+const pack=JSON.parse(out)[0],names=pack.files.map(f=>f.path);
+for(const name of ['src/index.cjs','src/index.js','src/index.d.ts','src/capabilities.json','INTERFACE-20261105.md'])assert.ok(names.includes(name),name);
+for(const name of names)assert.match(name,/^(?:src\/[\w.-]+|docs\/[\w.-]+|examples\/[\w.-]+|(?:README|CHANGELOG|SECURITY|INTERFACE-20261105)\.md|LICENSE|package\.json)$/);
+for(const name of names)assert.ok(!/-----BEGIN .*PRIVATE KEY-----|\bvd_(?:live|oat|ort)_[A-Za-z0-9]{16,}\b/.test(fs.readFileSync(name,'utf8')),name+' contains credential');
+console.log(JSON.stringify({version:pkg.version,files:names.length,size:pack.size,integrity:pack.integrity}));

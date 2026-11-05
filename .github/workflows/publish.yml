@@ -1,0 +1,47 @@
+name: npm 게시
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+permissions:
+  contents: read
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: 게시 버전 확인
+        run: node -e "const p=require('./package.json'); if(process.env.GITHUB_REF_NAME!=='v'+p.version) throw Error('태그와 패키지 버전 불일치')"
+      - name: OIDC 지원 npm과 개발 의존성 설치
+        run: |
+          npm install --global npm@11
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: 배포 파일 검사
+        run: node scripts/check-release.cjs
+      - name: 단위·타입 검사 후 신뢰된 게시자로 게시
+        run: npm publish --access public --provenance
+      - name: 실제 레지스트리 설치와 운영 명세·MCP 확인
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          target="$RUNNER_TEMP/vidia-installed"
+          for attempt in 1 2 3 4 5; do
+            if npm install --prefix "$target" --ignore-scripts --no-audit --no-fund --prefer-online "vidia-api@$version" vidia-mcp@1.1.1; then break; fi
+            if [ "$attempt" = 5 ]; then exit 1; fi
+            sleep 10
+          done
+          node scripts/verify-installed.cjs "$target"
