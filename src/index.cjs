@@ -89,6 +89,7 @@ function settingsBody(p) {
 	if (p.loopPolicy !== undefined) body.loop_policy = p.loopPolicy;
 	if (p.loopRetries !== undefined) body.loop_retries = p.loopRetries;
 	if (p.scheduledAt !== undefined) body.scheduled_at = p.scheduledAt;
+	for (const [from,to] of Object.entries({parallelProduction:'parallel_production',blueprintFirst:'blueprint_first',mediaMix:'media_mix',memberBrief:'member_brief',memberFields:'member_fields',draftId:'draft_id',draftRevision:'draft_revision'})) if(p[from]!==undefined)body[to]=p[from];
 	return body;
 }
 
@@ -164,6 +165,55 @@ class VidiaClient {
 		if (data === null) throw new VidiaApiError('VIDIA returned an unexpected response.', { status: res.status, code: 'BAD_RESPONSE' });
 		return data;
 	}
+
+	/** 공용 REST 계약 기능. 경로는 고정된 목록에서만 선택하며 입력 이름은 공개 명세와 같다. */
+	capability(name, args = {}) {
+		const op = require('./capabilities.json').find(o => o.name === name);
+		if (!op) throw new TypeError('Unknown VIDIA capability.');
+		if (!args || typeof args !== 'object' || Array.isArray(args)) throw new TypeError('Capability arguments must be an object.');
+		const body = {...args};
+		for (const key of op.inputSchema.required) if(body[key]===undefined || body[key]===null)throw new TypeError(key+' is required.');
+		if (op.inputSchema.required.includes('confirmed') && body.confirmed!==true)throw new TypeError('confirmed: true is required after user approval.');
+		let path = '/api/v1' + op.path;
+		if(path.includes('{id}')) {
+			const key=path.includes('/runs/')?'run_id':'draft_id';
+			path=path.replace('{id}',encodeURIComponent(String(body[key]))); delete body[key];
+		}
+		if(path.includes('{slug}')) { path=path.replace('{slug}',encodeURIComponent(String(body.slug))); delete body.slug; }
+		return this.#request(op.method.toUpperCase(),path+(op.method==='get'?queryString(body):''),op.method==='get'?undefined:body,QUOTE_TIMEOUT_MS);
+	}
+
+	checkCounsel(args = {}) { return this.capability('vidia_check_counsel', args); }
+	consult(args = {}) { return this.capability('vidia_consult', args); }
+	getBlueprint(args = {}) { return this.capability('vidia_get_blueprint', args); }
+	editBlueprint(args = {}) { return this.capability('vidia_edit_blueprint', args); }
+	quoteBlueprint(args = {}) { return this.capability('vidia_quote_blueprint', args); }
+	approveBlueprint(args = {}) { return this.capability('vidia_approve_blueprint', args); }
+	quoteBlueprintRefine(args = {}) { return this.capability('vidia_quote_blueprint_refine', args); }
+	refineBlueprint(args = {}) { return this.capability('vidia_refine_blueprint', args); }
+	answerBlueprint(args = {}) { return this.capability('vidia_answer_blueprint', args); }
+	getSampleReview(args = {}) { return this.capability('vidia_get_sample_review', args); }
+	quoteSampleReview(args = {}) { return this.capability('vidia_quote_sample_review', args); }
+	approveSampleReview(args = {}) { return this.capability('vidia_approve_sample_review', args); }
+	finishBlueprint(args = {}) { return this.capability('vidia_finish_blueprint', args); }
+	getSettlement(args = {}) { return this.capability('vidia_get_settlement', args); }
+	latestDraft(args = {}) { return this.capability('vidia_latest_draft', args); }
+	getDraft(args = {}) { return this.capability('vidia_get_draft', args); }
+	createDraft(args = {}) { return this.capability('vidia_create_draft', args); }
+	updateDraft(args = {}) { return this.capability('vidia_update_draft', args); }
+	discardDraft(args = {}) { return this.capability('vidia_discard_draft', args); }
+	search(args = {}) { return this.capability('vidia_search', args); }
+	serviceStatus(args = {}) { return this.capability('vidia_service_status', args); }
+	publicEstimates(args = {}) { return this.capability('vidia_public_estimates', args); }
+	listMarket(args = {}) { return this.capability('vidia_list_market', args); }
+	getRunNotifications(args = {}) { return this.capability('vidia_get_run_notifications', args); }
+	setRunNotifications(args = {}) { return this.capability('vidia_set_run_notifications', args); }
+	getMarketItem(args = {}) { return this.capability('vidia_get_market_item', args); }
+	chargeRecommendation(args = {}) { return this.capability('vidia_charge_recommendation', args); }
+	paymentHistory(args = {}) { return this.capability('vidia_payment_history', args); }
+	getScenePrice(args = {}) { return this.capability('vidia_get_scene_price', args); }
+	acceptScenePrice(args = {}) { return this.capability('vidia_accept_scene_price', args); }
+	runCounts(args = {}) { return this.capability('vidia_run_counts', args); }
 
 	/** 잔액·쿠폰·요금제 */
 	me() { return this.#request('GET', '/api/v1/me'); }

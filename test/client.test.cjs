@@ -302,3 +302,27 @@ test('웹훅 서명 확인: 같은 비밀값·본문·시각만 통과', () => {
 	assert.equal(verifyWebhookSignature('', header, body, { now }), false);
 });
 
+const operations=require('../src/capabilities.json');
+test('새 기능 전체는 고정 REST 경로로 전달하고 승인 입력·키 경계를 유지한다',async()=>{
+ const r=recorder([{}]),c=new VidiaClient({apiKey:KEY,fetch:r.fetch});
+ function value(s){if(s.const!==undefined)return s.const;if(s.enum)return s.enum[0];if(s.type==='integer')return s.minimum||1;if(s.type==='object')return {};if(s.type==='array')return [];return 'demo';}
+ for(const op of operations){
+  const args=Object.fromEntries(op.inputSchema.required.map(k=>[k,value(op.inputSchema.properties[k])]));
+  if(args.run_id)args.run_id=17;if(args.draft_id)args.draft_id='11111111-1111-4111-8111-111111111111';
+  const method=op.name.slice(6).replace(/_([a-z])/g,(_,x)=>x.toUpperCase());
+  await c[method](args);
+  const call=r.calls.at(-1);assert.equal(call.init.method,op.method.toUpperCase());
+  assert.equal(new URL(call.url).pathname,'/api/v1'+op.path.replace('{id}',String(args.run_id||args.draft_id)).replace('{slug}',args.slug));
+  assert.equal(call.init.headers.Authorization,'Bearer '+KEY);
+  if(op.inputSchema.required.includes('confirmed'))assert.throws(()=>c[method]({...args,confirmed:false}),/confirmed/);
+ }
+ assert.throws(()=>c.capability('https://attacker.invalid',{}),/Unknown/);
+ assert.ok(!JSON.stringify(c).includes(KEY));
+});
+test('견적과 시작에 새 회원 요구·설계도·초안 설정을 동일하게 전달한다',async()=>{
+ const r=recorder([{}]),c=new VidiaClient({apiKey:KEY,fetch:r.fetch});
+ const params={package:'demo',input:{topic:'가상'},memberBrief:{ledger:[]},memberFields:{req_style:'평면'},blueprintFirst:true,parallelProduction:false,mediaMix:{aiImage:50,aiVideo:0,stock:0,visual:50},draftId:'11111111-1111-4111-8111-111111111111',draftRevision:3};
+ await c.quote(params);await c.startRun({...params,quoteId:'q',budget:100,confirm:true,idempotencyKey:'request_test_01'});
+ for(const k of ['member_brief','member_fields','blueprint_first','parallel_production','media_mix','draft_id','draft_revision'])assert.deepEqual(r.calls[0].body[k],r.calls[1].body[k]);
+ assert.equal(r.calls[0].body.member_fields.req_style,'평면');
+});

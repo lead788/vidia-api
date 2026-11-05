@@ -177,3 +177,7 @@ catch (e) { if (e instanceof VidiaApiError) console.log(e.status, e.code, e.mess
 ## License
 
 MIT
+
+## 2026-11-05 회원 기능 연동
+
+[상담·설계도·대표 장면·초안·검색·정산·알림 연동](INTERFACE-20261105.md)을 참조하세요. 서버의 권한·소유권·예산 검사를 그대로 사용합니다.

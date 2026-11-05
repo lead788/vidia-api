@@ -102,6 +102,13 @@ export interface ListPackagesQuery {
 }
 
 export interface RunSettings {
+ parallelProduction?: boolean;
+ blueprintFirst?: boolean;
+ mediaMix?: {aiImage:number;aiVideo:number;stock:number;visual:number};
+ memberBrief?: Record<string,unknown>;
+ memberFields?: Record<string,string>;
+ draftId?: string;
+ draftRevision?: number;
 	title?: string;
 	mode?: 'AUTO' | 'MANUAL';
 	problemPolicy?: 'SKIP' | 'ASK';
@@ -302,7 +309,75 @@ export interface WaitOptions {
 	onProgress?: (run: Run) => void;
 }
 
+export interface CapabilityInputs {
+ vidia_check_counsel: { package: string; input: Record<string, unknown>; member_brief?: Record<string, unknown>; member_fields?: Record<string, unknown>; problem_policy?: "ASK" | "SKIP"; mode?: "AUTO" | "MANUAL"; blueprint_first?: boolean; media_mix?: Record<string, unknown>; parallel_production?: boolean };
+ vidia_consult: { package: string; input: Record<string, unknown>; member_brief?: Record<string, unknown>; member_fields?: Record<string, unknown>; problem_policy?: "ASK" | "SKIP"; mode?: "AUTO" | "MANUAL"; blueprint_first?: boolean; media_mix?: Record<string, unknown>; parallel_production?: boolean; fields?: Record<string, unknown>; round?: number; answers?: Record<string, unknown>; counsel?: Record<string, unknown> };
+ vidia_get_blueprint: { run_id: number };
+ vidia_edit_blueprint: { run_id: number; base_hash: string; scenes?: Array<Record<string, unknown>>; chapters?: Array<Record<string, unknown>> };
+ vidia_quote_blueprint: { run_id: number; models?: { image?: string; image_quality?: string; video?: string }; max_point?: number; target_point?: number; auto_video?: boolean; price_tolerance?: 0 | 5 | 10 | 20 | 30 };
+ vidia_approve_blueprint: { run_id: number; quote_id: string; idempotency_key: string; confirmed: true };
+ vidia_quote_blueprint_refine: { run_id: number; scene_id: string; kind: "narration" | "visual"; to_type?: string };
+ vidia_refine_blueprint: { run_id: number; scene_id: string; kind: "narration" | "visual"; to_type?: string; quote_point: number; idempotency_key: string; confirmed: true };
+ vidia_answer_blueprint: { run_id: number; question_id: string; choice: string; text?: string; idempotency_key: string };
+ vidia_get_sample_review: { run_id: number };
+ vidia_quote_sample_review: { run_id: number; token: string; phase: "main" | "revision"; max_point?: number };
+ vidia_approve_sample_review: { run_id: number; token: string; action: "approve_sample" | "revise_sample"; quote_id: string; note?: string; confirmed: true };
+ vidia_finish_blueprint: { run_id: number; confirmed: true };
+ vidia_get_settlement: { run_id: number };
+ vidia_latest_draft: { package?: string; from?: string };
+ vidia_get_draft: { draft_id: string };
+ vidia_create_draft: { draft_id: string; package: string; version_id?: number; from?: string; body: Record<string, unknown> };
+ vidia_update_draft: { draft_id: string; revision: number; version_id?: number; body: Record<string, unknown> };
+ vidia_discard_draft: { draft_id: string; revision: number; confirmed: true };
+ vidia_search: { q?: string; type?: "packages" | "market" | "help"; page?: number };
+ vidia_service_status: Record<string, unknown>;
+ vidia_public_estimates: Record<string, unknown>;
+ vidia_list_market: { q?: string; category?: string; format?: "SHORT" | "LONG"; sort?: "new" | "popular" | "price_asc" | "price_desc"; priceMin?: number; priceMax?: number; durationMin?: number; durationMax?: number; page?: number; size?: number };
+ vidia_get_run_notifications: Record<string, unknown>;
+ vidia_set_run_notifications: { app: boolean; email: boolean };
+ vidia_get_market_item: { slug: string };
+ vidia_charge_recommendation: { need?: number };
+ vidia_payment_history: { kind?: string; page?: number; q?: string; size?: 20 | 50; sort?: "recent" };
+ vidia_get_scene_price: { run_id: number };
+ vidia_accept_scene_price: { run_id: number; scene: string; point: number; confirmed: true };
+ vidia_run_counts: Record<string, unknown>;
+}
+export type CapabilityName = keyof CapabilityInputs;
+
 export declare class VidiaClient {
+ capability<N extends CapabilityName>(name:N,args:CapabilityInputs[N]):Promise<Record<string,unknown>>;
+ checkCounsel(args:CapabilityInputs['vidia_check_counsel']):Promise<Record<string,unknown>>;
+ consult(args:CapabilityInputs['vidia_consult']):Promise<Record<string,unknown>>;
+ getBlueprint(args:CapabilityInputs['vidia_get_blueprint']):Promise<Record<string,unknown>>;
+ editBlueprint(args:CapabilityInputs['vidia_edit_blueprint']):Promise<Record<string,unknown>>;
+ quoteBlueprint(args:CapabilityInputs['vidia_quote_blueprint']):Promise<Record<string,unknown>>;
+ approveBlueprint(args:CapabilityInputs['vidia_approve_blueprint']):Promise<Record<string,unknown>>;
+ quoteBlueprintRefine(args:CapabilityInputs['vidia_quote_blueprint_refine']):Promise<Record<string,unknown>>;
+ refineBlueprint(args:CapabilityInputs['vidia_refine_blueprint']):Promise<Record<string,unknown>>;
+ answerBlueprint(args:CapabilityInputs['vidia_answer_blueprint']):Promise<Record<string,unknown>>;
+ getSampleReview(args:CapabilityInputs['vidia_get_sample_review']):Promise<Record<string,unknown>>;
+ quoteSampleReview(args:CapabilityInputs['vidia_quote_sample_review']):Promise<Record<string,unknown>>;
+ approveSampleReview(args:CapabilityInputs['vidia_approve_sample_review']):Promise<Record<string,unknown>>;
+ finishBlueprint(args:CapabilityInputs['vidia_finish_blueprint']):Promise<Record<string,unknown>>;
+ getSettlement(args:CapabilityInputs['vidia_get_settlement']):Promise<Record<string,unknown>>;
+ latestDraft(args?:CapabilityInputs['vidia_latest_draft']):Promise<Record<string,unknown>>;
+ getDraft(args:CapabilityInputs['vidia_get_draft']):Promise<Record<string,unknown>>;
+ createDraft(args:CapabilityInputs['vidia_create_draft']):Promise<Record<string,unknown>>;
+ updateDraft(args:CapabilityInputs['vidia_update_draft']):Promise<Record<string,unknown>>;
+ discardDraft(args:CapabilityInputs['vidia_discard_draft']):Promise<Record<string,unknown>>;
+ search(args?:CapabilityInputs['vidia_search']):Promise<Record<string,unknown>>;
+ serviceStatus(args?:CapabilityInputs['vidia_service_status']):Promise<Record<string,unknown>>;
+ publicEstimates(args?:CapabilityInputs['vidia_public_estimates']):Promise<Record<string,unknown>>;
+ listMarket(args?:CapabilityInputs['vidia_list_market']):Promise<Record<string,unknown>>;
+ getRunNotifications(args?:CapabilityInputs['vidia_get_run_notifications']):Promise<Record<string,unknown>>;
+ setRunNotifications(args:CapabilityInputs['vidia_set_run_notifications']):Promise<Record<string,unknown>>;
+ getMarketItem(args:CapabilityInputs['vidia_get_market_item']):Promise<Record<string,unknown>>;
+ chargeRecommendation(args?:CapabilityInputs['vidia_charge_recommendation']):Promise<Record<string,unknown>>;
+ paymentHistory(args?:CapabilityInputs['vidia_payment_history']):Promise<Record<string,unknown>>;
+ getScenePrice(args:CapabilityInputs['vidia_get_scene_price']):Promise<Record<string,unknown>>;
+ acceptScenePrice(args:CapabilityInputs['vidia_accept_scene_price']):Promise<Record<string,unknown>>;
+ runCounts(args?:CapabilityInputs['vidia_run_counts']):Promise<Record<string,unknown>>;
+
 	constructor(apiKeyOrOptions?: string | VidiaClientOptions);
 	readonly baseUrl: string;
 	me(): Promise<Account>;
@@ -316,7 +391,7 @@ export declare class VidiaClient {
 	runAction(id: number | string, action: RunAction, params?: RunActionParams): Promise<Run>;
 	batchQuotes(items: QuoteParams[]): Promise<{ total: number; ok: number; failed: number; items: BatchItem<'quote', Quote>[] }>;
 	batchStart(items: Omit<StartRunParams, 'confirm'>[], options: { confirm: true }): Promise<{ total: number; started: number; failed: number; items: BatchItem<'run', StartedRun>[] }>;
-	getRunInput(id: number | string): Promise<{ runId: number; package: string | null; input: Record<string, unknown> }>;
+	getRunInput(id: number | string): Promise<{ runId: number; package: string | null; input: Record<string, unknown>; member_brief?: Record<string, unknown> }>;
 	trashRun(id: number | string): Promise<{ id: number; trashed: boolean; note?: string }>;
 	restoreRun(id: number | string): Promise<{ id: number; trashed: boolean }>;
 	setThumbnail(id: number | string, options: { assetId: number } | { reset: true }): Promise<{ runId: number; thumbnail: 'custom' | 'original'; assetId?: number }>;

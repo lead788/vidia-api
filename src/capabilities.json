@@ -1,0 +1,1071 @@
+[
+  {
+    "name": "vidia_check_counsel",
+    "path": "/member-briefs/check",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "package": {
+          "type": "string",
+          "description": "패키지 slug"
+        },
+        "input": {
+          "type": "object",
+          "description": "패키지 입력 칸",
+          "additionalProperties": true
+        },
+        "member_brief": {
+          "type": "object",
+          "description": "상담 결과의 회원 요구 원장·counsel 확인 기록. 견적과 시작에 동일하게 전달",
+          "additionalProperties": true
+        },
+        "member_fields": {
+          "type": "object",
+          "description": "회원 요구 입력 칸",
+          "additionalProperties": true
+        },
+        "problem_policy": {
+          "type": "string",
+          "description": "문제 처리",
+          "enum": [
+            "ASK",
+            "SKIP"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "description": "진행 방식",
+          "enum": [
+            "AUTO",
+            "MANUAL"
+          ]
+        },
+        "blueprint_first": {
+          "type": "boolean",
+          "description": "설계도 먼저 받기"
+        },
+        "media_mix": {
+          "type": "object",
+          "description": "화면 비중",
+          "additionalProperties": true
+        },
+        "parallel_production": {
+          "type": "boolean",
+          "description": "병렬 처리"
+        }
+      },
+      "required": [
+        "package",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_consult",
+    "path": "/member-briefs/consult",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "package": {
+          "type": "string",
+          "description": "패키지 slug"
+        },
+        "input": {
+          "type": "object",
+          "description": "패키지 입력 칸",
+          "additionalProperties": true
+        },
+        "member_brief": {
+          "type": "object",
+          "description": "상담 결과의 회원 요구 원장·counsel 확인 기록. 견적과 시작에 동일하게 전달",
+          "additionalProperties": true
+        },
+        "member_fields": {
+          "type": "object",
+          "description": "회원 요구 입력 칸",
+          "additionalProperties": true
+        },
+        "problem_policy": {
+          "type": "string",
+          "description": "문제 처리",
+          "enum": [
+            "ASK",
+            "SKIP"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "description": "진행 방식",
+          "enum": [
+            "AUTO",
+            "MANUAL"
+          ]
+        },
+        "blueprint_first": {
+          "type": "boolean",
+          "description": "설계도 먼저 받기"
+        },
+        "media_mix": {
+          "type": "object",
+          "description": "화면 비중",
+          "additionalProperties": true
+        },
+        "parallel_production": {
+          "type": "boolean",
+          "description": "병렬 처리"
+        },
+        "fields": {
+          "type": "object",
+          "description": "회원 요구 칸",
+          "additionalProperties": true
+        },
+        "round": {
+          "type": "integer",
+          "description": "상담 차수",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "answers": {
+          "type": "object",
+          "description": "상담 답변",
+          "additionalProperties": true
+        },
+        "counsel": {
+          "type": "object",
+          "description": "앞선 확인 기록",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "package",
+        "input"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_get_blueprint",
+    "path": "/runs/{id}/blueprint",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_edit_blueprint",
+    "path": "/runs/{id}/blueprint/edit",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "base_hash": {
+          "type": "string",
+          "description": "조회한 설계도 지문"
+        },
+        "scenes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "장면 변경",
+            "additionalProperties": true
+          },
+          "maxItems": 500
+        },
+        "chapters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "description": "소주제 변경",
+            "additionalProperties": true
+          },
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "run_id",
+        "base_hash"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_quote_blueprint",
+    "path": "/runs/{id}/blueprint/quote",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "models": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "string",
+              "description": "공개 이미지 모델 키"
+            },
+            "image_quality": {
+              "type": "string",
+              "description": "이미지 품질"
+            },
+            "video": {
+              "type": "string",
+              "description": "공개 영상 모델 키"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "max_point": {
+          "type": "integer",
+          "description": "전체 최대 예산 포인트",
+          "minimum": 1
+        },
+        "target_point": {
+          "type": "integer",
+          "description": "희망 예산 포인트",
+          "minimum": 1
+        },
+        "auto_video": {
+          "type": "boolean",
+          "description": "예산에 맞는 공개 영상 후보 선택"
+        },
+        "price_tolerance": {
+          "type": "integer",
+          "enum": [
+            0,
+            5,
+            10,
+            20,
+            30
+          ]
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_approve_blueprint",
+    "path": "/runs/{id}/blueprint/approve",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "quote_id": {
+          "type": "string",
+          "description": "견적 번호"
+        },
+        "idempotency_key": {
+          "type": "string",
+          "description": "동일 요청 재시도에 그대로 쓰는 식별자",
+          "pattern": "^[A-Za-z0-9_-]{8,96}$"
+        },
+        "confirmed": {
+          "type": "boolean",
+          "const": true,
+          "description": "사용자가 금액·영향을 확인하고 승인한 경우에만 true"
+        }
+      },
+      "required": [
+        "run_id",
+        "quote_id",
+        "idempotency_key",
+        "confirmed"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_quote_blueprint_refine",
+    "path": "/runs/{id}/blueprint/refine/quote",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "scene_id": {
+          "type": "string",
+          "description": "장면 번호"
+        },
+        "kind": {
+          "type": "string",
+          "description": "다듬을 항목",
+          "enum": [
+            "narration",
+            "visual"
+          ]
+        },
+        "to_type": {
+          "type": "string",
+          "description": "변경할 화면 유형"
+        }
+      },
+      "required": [
+        "run_id",
+        "scene_id",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_refine_blueprint",
+    "path": "/runs/{id}/blueprint/refine",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "scene_id": {
+          "type": "string",
+          "description": "장면 번호"
+        },
+        "kind": {
+          "type": "string",
+          "description": "다듬을 항목",
+          "enum": [
+            "narration",
+            "visual"
+          ]
+        },
+        "to_type": {
+          "type": "string",
+          "description": "변경할 화면 유형"
+        },
+        "quote_point": {
+          "type": "integer",
+          "description": "승인 견적 포인트",
+          "minimum": 0
+        },
+        "idempotency_key": {
+          "type": "string",
+          "description": "동일 요청 재시도에 그대로 쓰는 식별자",
+          "pattern": "^[A-Za-z0-9_-]{8,96}$"
+        },
+        "confirmed": {
+          "type": "boolean",
+          "const": true,
+          "description": "사용자가 금액·영향을 확인하고 승인한 경우에만 true"
+        }
+      },
+      "required": [
+        "run_id",
+        "scene_id",
+        "kind",
+        "quote_point",
+        "idempotency_key",
+        "confirmed"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_answer_blueprint",
+    "path": "/runs/{id}/blueprint/agent-answer",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "question_id": {
+          "type": "string",
+          "description": "질문 번호"
+        },
+        "choice": {
+          "type": "string",
+          "description": "반환된 선택지"
+        },
+        "text": {
+          "type": "string",
+          "description": "추가 요구",
+          "maxLength": 1000
+        },
+        "idempotency_key": {
+          "type": "string",
+          "description": "동일 요청 재시도에 그대로 쓰는 식별자",
+          "pattern": "^[A-Za-z0-9_-]{8,96}$"
+        }
+      },
+      "required": [
+        "run_id",
+        "question_id",
+        "choice",
+        "idempotency_key"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_get_sample_review",
+    "path": "/runs/{id}/sample-review",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_quote_sample_review",
+    "path": "/runs/{id}/blueprint/sample-review/quote",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "token": {
+          "type": "string",
+          "description": "현재 대표 장면 확인 토큰"
+        },
+        "phase": {
+          "type": "string",
+          "description": "견적 대상",
+          "enum": [
+            "main",
+            "revision"
+          ]
+        },
+        "max_point": {
+          "type": "integer",
+          "description": "전체 최대 예산",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "run_id",
+        "token",
+        "phase"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_approve_sample_review",
+    "path": "/runs/{id}/sample-review/approve",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "token": {
+          "type": "string",
+          "description": "현재 대표 장면 확인 토큰"
+        },
+        "action": {
+          "type": "string",
+          "description": "실행 선택",
+          "enum": [
+            "approve_sample",
+            "revise_sample"
+          ]
+        },
+        "quote_id": {
+          "type": "string",
+          "description": "현재 장면에 대한 새 견적"
+        },
+        "note": {
+          "type": "string",
+          "description": "수정 요구",
+          "maxLength": 400
+        },
+        "confirmed": {
+          "type": "boolean",
+          "const": true,
+          "description": "사용자가 금액·영향을 확인하고 승인한 경우에만 true"
+        }
+      },
+      "required": [
+        "run_id",
+        "token",
+        "action",
+        "quote_id",
+        "confirmed"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_finish_blueprint",
+    "path": "/runs/{id}/blueprint/finish",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "confirmed": {
+          "type": "boolean",
+          "const": true,
+          "description": "사용자가 금액·영향을 확인하고 승인한 경우에만 true"
+        }
+      },
+      "required": [
+        "run_id",
+        "confirmed"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_get_settlement",
+    "path": "/runs/{id}/settlement",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_latest_draft",
+    "path": "/run-drafts/latest",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "package": {
+          "type": "string",
+          "description": "패키지 slug"
+        },
+        "from": {
+          "type": "string",
+          "description": "원본 참조"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_get_draft",
+    "path": "/run-drafts/{id}",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "description": "클라이언트에서 만든 초안 UUID",
+          "pattern": "^[0-9a-fA-F-]{36}$"
+        }
+      },
+      "required": [
+        "draft_id"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_create_draft",
+    "path": "/run-drafts",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "description": "클라이언트에서 만든 초안 UUID",
+          "pattern": "^[0-9a-fA-F-]{36}$"
+        },
+        "package": {
+          "type": "string",
+          "description": "패키지 slug"
+        },
+        "version_id": {
+          "type": "integer",
+          "description": "패키지 버전",
+          "minimum": 1
+        },
+        "from": {
+          "type": "string",
+          "description": "원본 참조"
+        },
+        "body": {
+          "type": "object",
+          "description": "웹 임시저장과 같은 body: fields·assets·settings·title·titleAuto·memberBrief",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "draft_id",
+        "package",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_update_draft",
+    "path": "/run-drafts/{id}/update",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "description": "클라이언트에서 만든 초안 UUID",
+          "pattern": "^[0-9a-fA-F-]{36}$"
+        },
+        "revision": {
+          "type": "integer",
+          "description": "조회한 초안의 개정 번호",
+          "minimum": 1
+        },
+        "version_id": {
+          "type": "integer",
+          "description": "패키지 버전",
+          "minimum": 1
+        },
+        "body": {
+          "type": "object",
+          "description": "웹 임시저장과 같은 body: fields·assets·settings·title·titleAuto·memberBrief",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "draft_id",
+        "revision",
+        "body"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_discard_draft",
+    "path": "/run-drafts/{id}/discard",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "description": "클라이언트에서 만든 초안 UUID",
+          "pattern": "^[0-9a-fA-F-]{36}$"
+        },
+        "revision": {
+          "type": "integer",
+          "description": "조회한 초안의 개정 번호",
+          "minimum": 1
+        },
+        "confirmed": {
+          "type": "boolean",
+          "const": true,
+          "description": "사용자가 금액·영향을 확인하고 승인한 경우에만 true"
+        }
+      },
+      "required": [
+        "draft_id",
+        "revision",
+        "confirmed"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_search",
+    "path": "/search",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "string",
+          "description": "검색어",
+          "maxLength": 60
+        },
+        "type": {
+          "type": "string",
+          "description": "검색 분류",
+          "enum": [
+            "packages",
+            "market",
+            "help"
+          ]
+        },
+        "page": {
+          "type": "integer",
+          "description": "페이지",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_service_status",
+    "path": "/status",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_public_estimates",
+    "path": "/public-estimates",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_list_market",
+    "path": "/market/items",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "q": {
+          "type": "string",
+          "description": "검색어",
+          "maxLength": 60
+        },
+        "category": {
+          "type": "string",
+          "description": "공개 분류",
+          "maxLength": 40
+        },
+        "format": {
+          "type": "string",
+          "description": "형식",
+          "enum": [
+            "SHORT",
+            "LONG"
+          ]
+        },
+        "sort": {
+          "type": "string",
+          "description": "인기는 누적 조회 수 기준",
+          "enum": [
+            "new",
+            "popular",
+            "price_asc",
+            "price_desc"
+          ]
+        },
+        "priceMin": {
+          "type": "integer",
+          "description": "최소 결제액(원)",
+          "minimum": 0
+        },
+        "priceMax": {
+          "type": "integer",
+          "description": "최대 결제액(원)",
+          "minimum": 0
+        },
+        "durationMin": {
+          "type": "integer",
+          "description": "최소 길이(초)",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "durationMax": {
+          "type": "integer",
+          "description": "최대 길이(초)",
+          "minimum": 0,
+          "maximum": 86400
+        },
+        "page": {
+          "type": "integer",
+          "description": "페이지",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "size": {
+          "type": "integer",
+          "description": "개수",
+          "minimum": 1,
+          "maximum": 60
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_get_run_notifications",
+    "path": "/notifications/run-complete",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_set_run_notifications",
+    "path": "/notifications/run-complete",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "app": {
+          "type": "boolean",
+          "description": "사이트 알림"
+        },
+        "email": {
+          "type": "boolean",
+          "description": "이메일"
+        }
+      },
+      "required": [
+        "app",
+        "email"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  },
+  {
+    "name": "vidia_get_market_item",
+    "path": "/market/items/{slug}",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "description": "상품 slug",
+          "maxLength": 120
+        }
+      },
+      "required": [
+        "slug"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_charge_recommendation",
+    "path": "/wallet/charge-recommendation",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "need": {
+          "type": "integer",
+          "description": "선택한 견적 포인트",
+          "minimum": 0,
+          "maximum": 10000000
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_payment_history",
+    "path": "/payments",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "거래 분류"
+        },
+        "page": {
+          "type": "integer",
+          "description": "페이지",
+          "minimum": 1
+        },
+        "q": {
+          "type": "string",
+          "description": "검색어",
+          "maxLength": 80
+        },
+        "size": {
+          "type": "integer",
+          "enum": [
+            20,
+            50
+          ]
+        },
+        "sort": {
+          "type": "string",
+          "description": "정렬",
+          "enum": [
+            "recent"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_run_counts",
+    "path": "/runs/counts",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_get_scene_price",
+    "path": "/runs/{id}/scene-price",
+    "method": "get",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "run_id"
+      ],
+      "additionalProperties": false
+    },
+    "read": true
+  },
+  {
+    "name": "vidia_accept_scene_price",
+    "path": "/runs/{id}/scene-price/approve",
+    "method": "post",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "integer",
+          "description": "제작 번호",
+          "minimum": 1
+        },
+        "scene": {
+          "type": "string",
+          "description": "조회한 장면 번호"
+        },
+        "point": {
+          "type": "integer",
+          "description": "승인 단가 포인트",
+          "minimum": 0
+        },
+        "confirmed": {
+          "type": "boolean",
+          "const": true,
+          "description": "사용자가 금액·영향을 확인하고 승인한 경우에만 true"
+        }
+      },
+      "required": [
+        "run_id",
+        "scene",
+        "point",
+        "confirmed"
+      ],
+      "additionalProperties": false
+    },
+    "read": false
+  }
+]
